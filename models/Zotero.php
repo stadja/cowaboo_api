@@ -69,7 +69,7 @@ class Zotero {
 	 * @return array        		 zoteroo bookmarks
 	 */	
 	public function getBookmarks($usersOrGroups, $elementId, $zoteroKey, $tags = false) {
-		$methodUrl             = $this->url.'/'.$usersOrGroups.'/'.$elementId.'/items?key='.$zoteroKey; 
+		$methodUrl             = $this->url.'/'.$usersOrGroups.'/'.$elementId.'/items?key='.$zoteroKey.'&limit=150'; 
 		if ($tags) {
 			$tags = explode(',', $tags);
 			foreach ($tags as $tag) {
@@ -197,7 +197,7 @@ class Zotero {
 			foreach ($zoteroTags as $key => $tag) {
 				$nbrOfElement = $tag->meta->numItems;
 				if ($nbrOfElement) {
-					$tags[] = array('title' => (string)$tag->tag
+					$tags[] = array('title' => strtolower((string)$tag->tag)
 						, 'nbrOfElement' => array(array('service' => 'zotero', 'nbr' => $tag->meta->numItems))
 						,'links' => array(array('service' => 'zotero', 'link' => (string)$tag->links->self->href))
 					);

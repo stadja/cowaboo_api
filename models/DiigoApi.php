@@ -1,5 +1,5 @@
 <?php
-class Diigo {
+class DiigoApi {
 	var $url = '';
 	var $urlRss = '';
 	var $api = '';
@@ -8,6 +8,27 @@ class Diigo {
 		$this->url = $url;
 		$this->urlRss = $urlRss;
 		$this->api = $api;
+    }
+    
+    /**
+     * description
+     *
+     * @param string method rest verb (lowecase)
+     * @param string url method url
+     * @param array data data sent to the server
+     * @return array result of the api call
+     */
+    protected function diigoApiCall($method, $url, $data, $headers)
+    {
+    	$apikey = 'key=754de7bc88a0d803';
+    	if (!strpos($url, '?')) {
+    		$url .= '?'.$apikey;
+    	} else {
+    		$url .= '&'.$apikey;
+    	}
+
+        $results = $this->api->call($method, $url, $data, $headers);
+        return $results; /* result of the api call */
     }
     
 	/**
@@ -27,7 +48,7 @@ class Diigo {
 		$diigoBookmark->tags = $info->tags;
 		$diigoBookmark->shared = 'yes';
 
-		$results = $this->api->call('post', $methodUrl, $diigoBookmark, array('Authorization' => $accessKey));
+		$results = $this->diigoApiCall('post', $methodUrl, $diigoBookmark, array('Authorization' => $accessKey));
 
 	    return $results; /* the ID of the newly created bookmark */
 	}
@@ -53,9 +74,12 @@ class Diigo {
 
 			}
 		}
-		$diigoBookmarks = $this->api->call('get', $methodUrl, false, array('Authorization' => $diigoAccessKey));
-		$diigoBookmarks = json_decode($diigoBookmarks);
+		$diigoBookmarksJson = $this->diigoApiCall('get', $methodUrl, false, array('Authorization' => $diigoAccessKey));
+		$diigoBookmarks = json_decode($diigoBookmarksJson);
 
+		if (!is_array($diigoBookmarks) && $diigoBookmarks == NULL) {
+			return $diigoBookmarksJson; 
+		}
 		return $diigoBookmarks;
 	}
 

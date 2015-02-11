@@ -8,6 +8,7 @@ class ApiCaller {
 	 * @return string content of the get request
 	 */
     public function call($method, $url, $data = false, $additionalHeaders = false) {
+
 		// Tableau contenant les options de téléchargement
 		$options=array(
 			CURLOPT_URL				=> $url, // Url cible (l'url la page que vous voulez télécharger)
@@ -41,7 +42,7 @@ class ApiCaller {
 		// Configuration des options de téléchargement
 		curl_setopt_array($CURL, $options);
 		curl_setopt($CURL, CURLOPT_HTTPHEADER, $headers);
-curl_setopt($CURL, CURLOPT_HTTPAUTH, CURLAUTH_NTLM); 
+		curl_setopt($CURL, CURLOPT_HTTPAUTH, CURLAUTH_NTLM); 
 
 		// Exécution de la requête
 		$content = curl_exec($CURL);      // Le contenu téléchargé est enregistré dans la variable $content. Libre à vous de l'afficher.

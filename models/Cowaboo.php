@@ -5,12 +5,77 @@ class Cowaboo {
 	var $diigo;
 	var $zotero;
 
-	function __construct($app, $diigo, $zotero) {
-		$this->app    = $app;
-		$this->diigo  = $diigo;
-		$this->zotero = $zotero;
+	function __construct($app, $diigo, $zotero, $mediaWiki) {
+		$this->app       = $app;
+		$this->diigo     = $diigo;
+		$this->zotero    = $zotero;
+		$this->mediaWiki = $mediaWiki;
     }
 
+    /**
+     * Return a string without accent
+     *
+     * @param string withAccent string with accent
+     * @return string string without accent
+     */
+    private function  _noAccent($withAccent)
+    {
+        $withoutAccent = str_replace(
+			array(
+				'à', 'â', 'ä', 'á', 'ã', 'å',
+				'î', 'ï', 'ì', 'í', 
+				'ô', 'ö', 'ò', 'ó', 'õ', 'ø', 
+				'ù', 'û', 'ü', 'ú', 
+				'é', 'è', 'ê', 'ë', 
+				'ç', 'ÿ', 'ñ'
+			),
+			array(
+				'a', 'a', 'a', 'a', 'a', 'a', 
+				'i', 'i', 'i', 'i', 
+				'o', 'o', 'o', 'o', 'o', 'o', 
+				'u', 'u', 'u', 'u', 
+				'e', 'e', 'e', 'e', 
+				'c', 'y', 'n'
+			),$withAccent
+		); 
+
+		return $withoutAccent; /* string without accent */
+    }
+
+    /**
+     * Get all related tags
+     * 
+     * @return array related tags by service
+     */
+    public function  getTagsRelatedInfoByTagService()
+    {
+        $services = $this->app->request->get('tag_services'); 
+	 	if (!$services) {
+	 		$services = 'diigo,wikipedia';
+	 	}
+	 	$services = explode(',', $services);
+
+	 	$tag = $this->getParam('get', 'related tags', 'tag');
+		$tag = $this->_noAccent(strtolower($tag));
+ 		$tagNoSpace = str_replace(' ','%20',$tag); 
+ 		
+	 	$infos = array();
+	 	if (in_array('diigo', $services)) {
+	 		$relatedTags = $this->diigo->getRelatedTags($tagNoSpace);
+	 		if (!sizeof($relatedTags)) {
+	 			$relatedTags = $this->diigo->getRelatedTags($tag);
+	 		}
+
+	 		$infos['diigo'] = $relatedTags;
+	 	}
+
+	 	if (in_array('wikipedia', $services)) {
+	 		$infos['wikipedia'] = $this->mediaWiki->getRelatedInfo($tag);
+	 	}
+
+        return $infos; /* related tags by service */
+    }
+    
     public function getAllServiceTags() {
 		$info = new stdClass();
 	
@@ -80,6 +145,75 @@ class Cowaboo {
 	    return array_values($mergedTags); /* final merged set of tags */
 	}
 
+	/**
+	 * Generate meta informations for the bookmarks
+	 *
+	 * @param array unmerged array of bookmarks by services
+	 * @param array merged array of merged bookmarks
+	 * @return array meta informations
+	 */
+	public function  generateBookmarkMeta($unmerged, $merged)
+	{
+	    $meta = array();
+	    $meta['merged'] = array();
+	    $meta['unmerged'] = array();
+
+	    foreach ($unmerged as $service => $bookmarks) {
+	       	$meta['unmerged'][$service] = array();
+	       	$meta['unmerged'][$service]['count'] = sizeof($bookmarks);
+	       	$meta['unmerged'][$service]['tags'] = array();
+
+	       	foreach ($bookmarks as $bookmark) {
+	       		$tags = array();
+		       	switch ($service) {
+		       		case 'diigo':
+		       			$tagString = $bookmark->tags;
+		       			$tagArray = explode(',', $tagString);
+		       			$tags = array_filter($tagArray, function($value) {
+		       				return $value != 'no_tag';
+		       			});
+		       			break;
+
+		       		case 'zotero':
+	       				$tagArray = $bookmark->data->tags;
+	       				foreach ($tagArray as $tagData) {
+	       					$tags[] = $tagData->tag;
+	       				}
+		       			break;
+		       		
+		       		default:
+		       			break;
+		       	}
+
+		       	foreach ($tags as $tag) {
+		       		if (!isset($meta['unmerged'][$service]['tags'][$tag])) {
+		       			$meta['unmerged'][$service]['tags'][$tag] = new stdClass();
+		       			$meta['unmerged'][$service]['tags'][$tag]->name = $tag;
+		       			$meta['unmerged'][$service]['tags'][$tag]->count = 0;
+		       		}
+	       			$meta['unmerged'][$service]['tags'][$tag]->count++;
+		       	}
+	       	}
+	    }
+
+    	$meta['merged']['count'] = sizeof($merged);
+       	$meta['merged']['tags'] = array();
+
+       	foreach ($merged as $bookmark) {
+       		foreach ($bookmark->tags as $tag) {
+       			$tag = strtolower($tag);
+	       		if (!isset($meta['merged']['tags'][$tag])) {
+	       			$meta['merged']['tags'][$tag] = new stdClass();
+	       			$meta['merged']['tags'][$tag]->name = $tag;
+	       			$meta['merged']['tags'][$tag]->count = 0;
+	       		}
+       			$meta['merged']['tags'][$tag]->count++;
+	       	}
+       	}
+       	
+	    return $meta; /* meta informations */
+	}
+	
     public function getAllServiceBookmarks() {
     	$tags = $this->app->request->get('tags'); 
 
@@ -98,6 +232,10 @@ class Cowaboo {
 			if (isset($diigoBookmarks->error)) {
 				$error = $diigoBookmarks->error[0];
 				$this->sendError('Diigo Error: '.$error->message, $error->code);
+			}
+				
+			if (is_string($diigoBookmarks)) {
+				$this->sendError('Diigo Error: '.$diigoBookmarks, 400);
 			}
 			$results['diigo'] = $diigoBookmarks;
 	 	}

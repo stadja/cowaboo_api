@@ -2,7 +2,9 @@
 require 'vendor/autoload.php';
 require 'models/Cowaboo.php';
 require 'models/Diigo.php';
+require 'models/DiigoApi.php';
 require 'models/Zotero.php';
+require 'models/MediaWiki.php';
 require 'services/ApiCaller.php';
 
 $dfUrl     = "http://stadja.net:81/rest";
@@ -11,18 +13,25 @@ $diigoRssUrl  = $dfUrl."/diigoRss";
 $apiCaller = new ApiCaller();
 
 $app = new \Slim\Slim();
+$app->response->headers->set('Content-Type', 'application/json');
 
 $diigoUrl  = $dfUrl."/diigo";
 $diigoRssUrl  = $dfUrl."/diigoRss";
 $diigo = new Diigo($diigoUrl, $diigoRssUrl, $apiCaller);
 
+$diigoUrl  = 'https://secure.diigo.com/api/v2';
+$diigoRssUrl  = $dfUrl."/diigoRss";
+$diigoApi = new DiigoApi($diigoUrl, $diigoRssUrl, $apiCaller);
+
 $zoteroUrl = $dfUrl."/zotero";
 $zoteroKey = 'key=KgxKEkhTflxqBqTYlWs0TPBP';
 $zotero = new Zotero($zoteroUrl, $zoteroKey, $apiCaller);
 
-$app->response->headers->set('Content-Type', 'application/json');
+$mediaWikiUrl = "http://en.wikipedia.org/w/api.php";
+$wikipediaUrl = "https://en.wikipedia.org/wiki";
+$mediaWiki = new MediaWiki($mediaWikiUrl, $wikipediaUrl, $apiCaller);
 
-$cowaboo = new Cowaboo($app, $diigo, $zotero);
+$cowaboo = new Cowaboo($app, $diigoApi, $zotero, $mediaWiki);
 $app->cowaboo = $cowaboo;
 
 /**
@@ -35,8 +44,10 @@ $app->get('/bookmarks', function () use ($app) {
 	$mergedBookmarks   = $app->cowaboo->mergeAllBookmarks($unmergedBookmarks);
 
 	$results             = array();
+	$results['meta']	 = array();
 	$results['merged']   = $mergedBookmarks;
 	$results['unmerged'] = $unmergedBookmarks;
+	$results['meta'] 	 = $app->cowaboo->generateBookmarkMeta($results['unmerged'], $results['merged']);
 
 	return $app->response->setBody(json_encode($results));
 })->name('getBookmarks');
@@ -57,14 +68,14 @@ $app->post('/bookmarks', function () use ($app) {
  * Post: createBookmark
  * To create a bookmark
  */
-$app->get('/bookmark', function () use ($app) {
+/*$app->get('/bookmark', function () use ($app) {
 
 	$result = $app->cowaboo->createABookmarkForEachService();
 
 	$results = array('code' => 200, 'message' => 'ok');
 	$app->response->setBody(json_encode($results));
 
-})->name('createBookmark');
+})->name('createBookmark');*/
 
 /**
  * GET: getTags
@@ -78,6 +89,17 @@ $app->get('/tags', function () use ($app) {
 })->name('getTags');
 
 /**
+ * GET: getRelatedTags
+ * To get related tags
+ */
+$app->get('/tags/related', function () use ($app) {
+	$related = array();
+	$related = $app->cowaboo->getTagsRelatedInfoByTagService();
+
+	$app->response->setBody(json_encode($related));
+})->name('getRelatedTags');
+
+/**
  * When you ask a not existing api method
  */
 $app->map(':whatever+', function() use ($app) {
@@ -85,6 +107,7 @@ $app->map(':whatever+', function() use ($app) {
 	$routes[] = array('id' => 'getBookmarks', 'method' => 'GET', 'pattern' => '/bookmarks', 'query' => array('services', 'diigo_username', 'zotero_users_or_groups', 'zotero_elementId', 'tags'));
 	$routes[] = array('id' => 'createBookmark', 'method' => 'POST', 'pattern' => '/bookmarks', 'query' => array('services', 'zotero_users_or_groups', 'zotero_elementId', 'title', 'description', 'url', 'tags'));
 	$routes[] = array('id' => 'getTags', 'method' => 'GET', 'pattern' => '/tags', 'query' => array('services', 'diigo_username', 'zotero_users_or_groups', 'zotero_elementId'));
+	$routes[] = array('id' => 'getRelatedTags', 'method' => 'GET', 'pattern' => '/tags/related', 'query' => array('services', 'tag'));
 	$app->response->setStatus(404);
 	$app->response->setBody(json_encode($routes));
 	$app->halt(404, json_encode($routes));
