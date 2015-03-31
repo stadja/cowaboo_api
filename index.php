@@ -15,23 +15,25 @@ $apiCaller = new ApiCaller();
 $app = new \Slim\Slim();
 $app->response->headers->set('Content-Type', 'application/json');
 
-$diigoUrl  = $dfUrl."/diigo";
+/*$diigoUrl  = $dfUrl."/diigo";
 $diigoRssUrl  = $dfUrl."/diigoRss";
-$diigo = new Diigo($diigoUrl, $diigoRssUrl, $apiCaller);
+$diigo = new Diigo($diigoUrl, $diigoRssUrl, $apiCaller);*/
 
 $diigoUrl  = 'https://secure.diigo.com/api/v2';
 $diigoRssUrl  = $dfUrl."/diigoRss";
-$diigoApi = new DiigoApi($diigoUrl, $diigoRssUrl, $apiCaller);
+$diigoRealApi = new DiigoRealApi($diigoUrl, $diigoRssUrl, $apiCaller);
 
 $zoteroUrl = $dfUrl."/zotero";
+$zoteroWebsiteSearchUrl  = 'https://www.zotero.org/searchresults';
 $zoteroKey = 'key=KgxKEkhTflxqBqTYlWs0TPBP';
-$zotero = new Zotero($zoteroUrl, $zoteroKey, $apiCaller);
+
+$zotero = new Zotero($zoteroUrl, $zoteroWebsiteSearchUrl, $zoteroKey, $apiCaller);
 
 $mediaWikiUrl = "http://en.wikipedia.org/w/api.php";
 $wikipediaUrl = "https://en.wikipedia.org/wiki";
 $mediaWiki = new MediaWiki($mediaWikiUrl, $wikipediaUrl, $apiCaller);
 
-$cowaboo = new Cowaboo($app, $diigoApi, $zotero, $mediaWiki);
+$cowaboo = new Cowaboo($app, $diigoRealApi, $zotero, $mediaWiki);
 $app->cowaboo = $cowaboo;
 
 /**
@@ -64,18 +66,30 @@ $app->post('/bookmarks', function () use ($app) {
 	$app->response->setBody(json_encode($results));
 
 })->name('createBookmark');
+
+/**
+ * Get: findGroupId
+ * To find a group id
+ */
+$app->get('/group/id', function () use ($app) {
+
+	$results = $app->cowaboo->findGroupIdByService();
+	$app->response->setBody(json_encode($results));
+
+})->name('findGroupId');
+
 /**
  * Post: createBookmark
  * To create a bookmark
  */
-/*$app->get('/bookmark', function () use ($app) {
+$app->get('/postbookmarks', function () use ($app) {
 
 	$result = $app->cowaboo->createABookmarkForEachService();
 
 	$results = array('code' => 200, 'message' => 'ok');
 	$app->response->setBody(json_encode($results));
 
-})->name('createBookmark');*/
+})->name('createBookmark');
 
 /**
  * GET: getTags
@@ -89,25 +103,48 @@ $app->get('/tags', function () use ($app) {
 })->name('getTags');
 
 /**
- * GET: getRelatedTags
- * To get related tags
+ * GET: getRelatedTagInformation
+ * To get related tags info
  */
-$app->get('/tags/related', function () use ($app) {
+$app->get('/tags/infos', function () use ($app) {
 	$related = array();
 	$related = $app->cowaboo->getTagsRelatedInfoByTagService();
 
 	$app->response->setBody(json_encode($related));
-})->name('getRelatedTags');
+})->name('getRelatedTagInformation');
+
+/**
+ * GET: getRelatedGroups
+ * To get related tags
+ */
+$app->get('/tags/groups', function () use ($app) {
+	$related = array();
+	$related = $app->cowaboo->getRelatedGroupsByService();
+
+	$app->response->setBody(json_encode($related));
+})->name('getRelatedGroups');
+
+/**
+ * GET: getRelatedGroups
+ * To get related tags
+ */
+$app->get('/tags/users', function () use ($app) {
+	$related = array();
+	$related = $app->cowaboo->getRelatedUsersByService();
+
+	$app->response->setBody(json_encode($related));
+})->name('getRelatedGroups');
 
 /**
  * When you ask a not existing api method
  */
 $app->map(':whatever+', function() use ($app) {
+	die();
 	$routes = array();
 	$routes[] = array('id' => 'getBookmarks', 'method' => 'GET', 'pattern' => '/bookmarks', 'query' => array('services', 'diigo_username', 'zotero_users_or_groups', 'zotero_elementId', 'tags'));
 	$routes[] = array('id' => 'createBookmark', 'method' => 'POST', 'pattern' => '/bookmarks', 'query' => array('services', 'zotero_users_or_groups', 'zotero_elementId', 'title', 'description', 'url', 'tags'));
 	$routes[] = array('id' => 'getTags', 'method' => 'GET', 'pattern' => '/tags', 'query' => array('services', 'diigo_username', 'zotero_users_or_groups', 'zotero_elementId'));
-	$routes[] = array('id' => 'getRelatedTags', 'method' => 'GET', 'pattern' => '/tags/related', 'query' => array('services', 'tag'));
+	$routes[] = array('id' => 'getRelatedTagInformation', 'method' => 'GET', 'pattern' => '/tags/related', 'query' => array('group_services', 'tag'));
 	$app->response->setStatus(404);
 	$app->response->setBody(json_encode($routes));
 	$app->halt(404, json_encode($routes));

@@ -13,6 +13,24 @@ class Cowaboo {
     }
 
     /**
+     * Find a group id from a groupname
+     *
+     * @return array group ids
+     */
+    public function  findGroupIdByService()
+    {
+        $infos = array();
+
+	 	$zotero_groupName = $this->getParam('get', 'group id', 'zotero_groupName');
+	 	$zotero_groupName = strtolower($zotero_groupName);
+	 	$zotero_groupName = str_replace(' ', '_', $zotero_groupName);
+
+        $groupId = $this->zotero->findGroupId($zotero_groupName);
+ 		$infos['zotero'] = array($zotero_groupName =>$groupId);
+        return $infos; /* description_retour */
+    }
+    
+    /**
      * Return a string without accent
      *
      * @param string withAccent string with accent
@@ -43,9 +61,9 @@ class Cowaboo {
     }
 
     /**
-     * Get all related tags
+     * Get all related tag info
      * 
-     * @return array related tags by service
+     * @return array related tag info by service
      */
     public function  getTagsRelatedInfoByTagService()
     {
@@ -74,6 +92,62 @@ class Cowaboo {
 	 	}
 
         return $infos; /* related tags by service */
+    }
+
+    /**
+     * Get all related groups
+     * 
+     * @return array related groups by service
+     */
+    public function  getRelatedGroupsByService()
+    {
+        $services = $this->app->request->get('group_services'); 
+	 	if (!$services) {
+	 		$services = 'zotero';
+	 	}
+	 	$services = explode(',', $services);
+
+	 	$tag = $this->getParam('get', 'related groups', 'tag');
+		$tag = $this->_noAccent(strtolower($tag));
+ 		$tagNoSpace = str_replace(' ','%20',$tag); 
+ 		
+	 	$groups = array();
+	 	if (in_array('zotero', $services)) {
+	 		$relatedGroups = $this->zotero->getRelatedGroups($tagNoSpace);
+	 		/*if (!sizeof($relatedGroups)) {
+	 			$relatedGroups = $this->zotero->getRelatedGroups($tag);
+	 		}*/
+
+	 		$groups['zotero'] = $relatedGroups;
+	 	}
+
+        return $groups; /* related tags by service */
+    }
+
+    /**
+     * Get all related users
+     * 
+     * @return array related users by service
+     */
+    public function  getRelatedUsersByService()
+    {
+        $services = $this->app->request->get('user_services'); 
+	 	if (!$services) {
+	 		$services = 'zotero';
+	 	}
+	 	$services = explode(',', $services);
+
+	 	$tag = $this->getParam('get', 'related users', 'tag');
+		$tag = $this->_noAccent(strtolower($tag));
+ 		$tagNoSpace = str_replace(' ','%20',$tag); 
+ 		
+	 	$users = array();
+	 	if (in_array('zotero', $services)) {
+	 		$relatedUsers = $this->zotero->getRelatedUsers($tagNoSpace);
+	 		$users['zotero'] = $relatedUsers;
+	 	}
+
+        return $users; /* related tags by service */
     }
     
     public function getAllServiceTags() {
@@ -351,7 +425,7 @@ class Cowaboo {
 			$info->tags = "";
 			foreach ($tags as $key => $tag) {
 				$tag = trim($tag);
-				if ($key > 1) {
+				if ($key > 0) {
 					$info->tags .= ',';
 				}
 				$info->tags .= $tag;
@@ -374,6 +448,10 @@ class Cowaboo {
 	 	if (in_array('diigo', $services)) {
 	 		$diigoAccessKey = $this->getParam('get', 'diigo', 'diigo_access_key');
 	 		$diigoBookmark = $this->diigo->createBookmark($diigoAccessKey, $info);
+	 		$jsonDiigoBookmark = json_decode($diigoBookmark);
+	 		if (!isset($jsonDiigoBookmark->code)  || ($jsonDiigoBookmark->code != 1)) {
+				$this->sendError('Diigo Error: '.$diigoBookmark, 400);
+	 		}
 	 	}
 
 	 	if (in_array('zotero', $services)) {

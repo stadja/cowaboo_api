@@ -1,12 +1,14 @@
 <?php
 class Zotero {
-	var $url = '';
-	var $api = '';
+	var $url              = '';
+	var $websiteSearchUrl = '';
+	var $api              = '';
 
-	function __construct($url, $key, $api) {
-		$this->url = $url;
-		$this->key = $key;
-		$this->api = $api;
+	function __construct($url, $websiteSearchUrl, $key, $api) {
+		$this->url              = $url;
+		$this->websiteSearchUrl = $websiteSearchUrl;
+		$this->key              = $key;
+		$this->api              = $api;
     }
 
 	/**
@@ -103,6 +105,10 @@ class Zotero {
 
 			$config->users[] = $user;
 
+			$config->created_at = $zoteroBookmark->data->dateAdded;
+			$config->updated_at = $zoteroBookmark->data->dateModified;
+			$config->updated_at = $zoteroBookmark->data->dateModified;
+
 			if (!isset($zoteroBookmark->data->parentItem) || ($zoteroBookmark->data->itemType == 'webpage')) {
 				$config->url 			= $zoteroBookmark->data->url;
 				$config->title 			= $zoteroBookmark->data->title;
@@ -113,10 +119,6 @@ class Zotero {
 					$tags[] = $tagObject->tag;
 				}
 				$config->tags = $tags;
-
-				$config->created_at = $zoteroBookmark->data->dateAdded;
-				$config->updated_at = $zoteroBookmark->data->dateModified;
-				$config->updated_at = $zoteroBookmark->data->dateModified;
 
 				$note = $zoteroBookmark->data->abstractNote;
 				$config->notes = array();
@@ -140,6 +142,7 @@ class Zotero {
 				if (!isset($attachments[$parent])) {
 					$attachments[$parent] = array();
 				}
+				$zoteroBookmark->config = $config;
 				$attachments[$parent][] = $zoteroBookmark;
 			}
 		}
@@ -206,6 +209,108 @@ class Zotero {
 		}
 		return $tags;
 	}
+
+	/**
+	 * Get related groups
+	 *
+	 * @param string tag tag from witch you want related groups
+	 * @return array related zotero groups
+	 */
+	public function  getRelatedGroups($tag)
+	{
+	    $groups = array();
+	    $methodUrl = $this->websiteSearchUrl.'?type=group&query='.$tag;
+		
+		$searchResponse = $this->api->call('get', $methodUrl);
+		$searchResponse = json_decode($searchResponse);
+		$searchResponse = $searchResponse->results;
+
+		$relateds = array();
+		$pattern = '/nugget-name\">\n            <a href=\"(.+)<\/a/m';
+		preg_match_all($pattern, $searchResponse, $relateds);
+		$relateds = $relateds[1];
+
+
+		$descriptions = array();
+		$pattern = '/<table class="nugget-profile">.+<\/table>/sU';
+		preg_match_all($pattern, $searchResponse, $descriptions);
+
+		$zoteroWebsiteUrl = 'https://www.zotero.org';
+
+		foreach ($relateds as $key => $groupInfo) {
+			$infos = array();
+			$pattern = '/(.+)">(.+)/';
+			preg_match($pattern, $groupInfo, $infos);
+			$infos = array('url' => $zoteroWebsiteUrl.$infos[1], 'name' => $infos[2], 'info' => $descriptions[0][$key]);
+			$groups[] = $infos;
+		}
+
+	    return $groups; /* related zotero groups */
+	}
+
+	/**
+	 * Get related groups
+	 *
+	 * @param string tag tag from witch you want related groups
+	 * @return array related zotero groups
+	 */
+	public function  getRelatedUsers($tag)
+	{
+	    $users = array();
+	    $methodUrl = $this->websiteSearchUrl.'?type=people&query='.$tag;
+		
+		$searchResponse = $this->api->call('get', $methodUrl);
+		$searchResponse = json_decode($searchResponse);
+		$searchResponse = $searchResponse->results;
+
+		$relateds = array();
+		$pattern = '/class=\"nugget-name\">\n                            <a href=\"(.+)">\n                                    (.*)                                </m';
+		preg_match_all($pattern, $searchResponse, $relateds);
+
+		$profiles = array();
+		
+		$pattern = '/<dl class="nugget-profile">.+<\/dl>/sU';
+		preg_match_all($pattern, $searchResponse, $profiles);
+
+		$zoteroWebsiteUrl = 'https://www.zotero.org';
+		foreach ($profiles as $key => $profile) {
+			$profiles[$key] = str_replace("#people", "/type/people/q", $profiles[$key]);
+			$profiles[$key] = str_replace("href='/", "href='".$zoteroWebsiteUrl.'/', $profiles[$key]);
+		}
+
+		foreach ($relateds[0] as $key => $userInfo) {
+			$infos = array();
+			$infos = array('url' => $zoteroWebsiteUrl.$relateds[1][$key], 'name' => $relateds[2][$key], 'info' => $profiles[0][$key]);
+			$users[] = $infos;
+		}
+
+	    return $users; /* related zotero users */
+	}
+	
+	/**
+	 * Get group id from group name
+	 *
+	 * @param string groupName group name
+	 * @return string description_retour
+	 */
+	public function  findGroupId($groupName)
+	{
+	    $methodUrl = "https://www.zotero.org/groups/$groupName/items";
+		$searchResponse = $this->api->call('get', $methodUrl);
+
+		$infos = array();
+		$pattern = '/"groupID":"([0-9]+)"/';
+		preg_match($pattern, $searchResponse, $infos);
+		
+		if (!isset($infos[1])) {
+			return false;
+		}
+
+		$groupId = $infos[1];
+
+	    return $groupId; 
+	}
+	
 
 }
 ?>
