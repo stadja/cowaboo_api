@@ -125,6 +125,36 @@ class Cowaboo {
     }
 
     /**
+     * Get all related bookmarks
+     * 
+     * @return array related bookmarks by service
+     */
+    public function  getRelatedBookmarksByService()
+    {
+        $services = $this->app->request->get('tag_services'); 
+	 	if (!$services) {
+	 		$services = 'diigo';
+	 	}
+	 	$services = explode(',', $services);
+
+	 	$tag = $this->getParam('get', 'related bookmarks', 'tag');
+		$tag = $this->_noAccent(strtolower($tag));
+ 		$tagNoSpace = str_replace(' ','%20',$tag); 
+ 		
+	 	$groups = array();
+	 	if (in_array('diigo', $services)) {
+	 		$relatedBookmarks = $this->diigo->getRelatedBookmarks($tagNoSpace);
+	 		/*if (!sizeof($relatedGroups)) {
+	 			$relatedGroups = $this->zotero->getRelatedGroups($tag);
+	 		}*/
+
+	 		$groups['diigo'] = $relatedBookmarks;
+	 	}
+
+        return $groups; /* related tags by service */
+    }
+
+    /**
      * Get all related users
      * 
      * @return array related users by service

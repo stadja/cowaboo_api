@@ -59,7 +59,7 @@ $app->get('/bookmarks', function () use ($app) {
  * To create a bookmark
  */
 $app->post('/bookmarks', function () use ($app) {
-
+	
 	$result = $app->cowaboo->createABookmarkForEachService();
 
 	$results = array('code' => 200, 'message' => 'ok');
@@ -123,6 +123,17 @@ $app->get('/tags/groups', function () use ($app) {
 
 	$app->response->setBody(json_encode($related));
 })->name('getRelatedGroups');
+
+/**
+ * GET: getRelatedBookmarks
+ * To get related bookmarks
+ */
+$app->get('/tags/bookmarks', function () use ($app) {
+	$related = array();
+	$related = $app->cowaboo->getRelatedBookmarksByService();
+
+	$app->response->setBody(json_encode($related));
+})->name('getRelatedBookmarks');
 
 /**
  * GET: getRelatedGroups

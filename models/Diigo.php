@@ -38,7 +38,17 @@ class Diigo {
 		$diigoBookmark->title = $info->title;
 		$diigoBookmark->url = $info->url;
 		$diigoBookmark->desc = $info->description;
-		$diigoBookmark->tags = $info->tags;
+
+		$tagString = '';
+		$tags = explode(',', $info->tags);
+		foreach ($tags as $key => $tag) {
+			if ($key > 0) {
+				$tagString .= ',';
+			}
+			$tagString .= '"'.$tag.'"';
+		}
+
+		$diigoBookmark->tags = $tagString;
 		$diigoBookmark->shared = 'yes';
 		$results = $this->diigoApiCall('post', $methodUrl, $diigoBookmark, array('Authorization' => $accessKey));
 	    return $results; /* the ID of the newly created bookmark */
@@ -132,7 +142,7 @@ class Diigo {
      */
     public function  getRelatedTags($tag)
     {
-		$methodUrl = $this->urlRss.("/tag/$tag?tab=151"); 
+		$methodUrl = $this->urlRss.("/tag/$tag?tab=153"); 
 		$stream = $this->api->call('get', $methodUrl);
 
 		try {
@@ -160,6 +170,33 @@ class Diigo {
 		
         return  $relateds; /* diigo related tags */
     }
+
+
+    /**
+     * Get related diigo tags
+     *
+     * @param string tag the tag from which we want related tags
+     * @return array diigo related tags
+     */
+    public function  getRelatedBookmarks($tag)
+    {
+		$methodUrl = $this->urlRss.("/tag/$tag?tab=153"); 
+		$stream = $this->api->call('get', $methodUrl);
+
+		try {
+			$parser = new SimpleXMLElement($stream);
+		} catch(Exception $e) {
+			return array();
+		}
+
+		$bookmarks = array();
+		foreach($parser->channel->item as $bookmark) {
+			$bookmarks[] = $bookmark;
+		}
+		
+        return  $bookmarks; /* diigo related tags */
+    }
+
 
 	/**
 	 * return all the diigo bookmarks of the user

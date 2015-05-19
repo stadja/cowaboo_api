@@ -36,7 +36,7 @@ class Zotero {
 
 		$webpage = "[{"
 		."  \"itemType\": \"webpage\","
-		."  \"title\": \"$info->title\","
+		."  \"title\": \"".addslashes($info->title)."\","
 		."  \"creators\": ["
 		."    {"
 		."      \"creatorType\": \"cowaboo\","
@@ -44,7 +44,7 @@ class Zotero {
 		."      \"lastName\": \"\""
 		."    }"
 		."  ],"
-		."  \"abstractNote\": \"$info->description\","
+		."  \"abstractNote\": \"".addslashes($info->description)."\","
 		."  \"websiteTitle\": \"\","
 		."  \"websiteType\": \"\","
 		."  \"date\": \"\","
@@ -58,7 +58,6 @@ class Zotero {
 		."  \"collections\": [],"
 		."  \"relations\": []"
 		."}]";
-
 		$results = $this->api->call('post', $methodUrl, $webpage);
 	    return $results; /* the ID of the newly created bookmark */
 	}
