@@ -20,7 +20,8 @@ class MediaWiki {
 	{
 		$methodUrl = $this->url.'?format=json&action=query&list=search&srprop=titlesnippet|snippet&continue=&srsearch='.urlencode($tag); 
 
-		$search = $this->api->call('get', $methodUrl);
+		// $search = $this->api->call('get', $methodUrl);
+		$search = file_get_contents($methodUrl);
 
 		$search = json_decode($search);
 		$search->suggestion = '';

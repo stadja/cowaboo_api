@@ -182,6 +182,15 @@ class Diigo {
     {
 		$methodUrl = $this->urlRss.("/tag/$tag?tab=153"); 
 		$stream = $this->api->call('get', $methodUrl);
+		$stream = str_replace("
+		
+		
+		
+		", '', $stream);
+		$stream = str_replace("
+	      		        
+	        ", '', $stream);
+
 
 		try {
 			$parser = new SimpleXMLElement($stream);

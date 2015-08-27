@@ -463,8 +463,8 @@ class Cowaboo {
 		}
 
 		$info->description = $this->app->request->get('description');
-		$info->title = $this->getParam('get', 'bookmark creation', 'title');
-		$info->url = $this->getParam('get', 'bookmark creation', 'url');
+		$info->title = $this->getParam('post', 'bookmark creation', 'title');
+		$info->url = $this->getParam('post', 'bookmark creation', 'url');
 
 	 	$services = $this->app->request->get('services'); 
 	 	if (!$services) {
@@ -476,7 +476,7 @@ class Cowaboo {
 	 	$results = array();
 
 	 	if (in_array('diigo', $services)) {
-	 		$diigoAccessKey = $this->getParam('get', 'diigo', 'diigo_access_key');
+	 		$diigoAccessKey = $this->getParam('post', 'diigo', 'diigo_access_key');
 	 		$diigoBookmark = $this->diigo->createBookmark($diigoAccessKey, $info);
 	 		$jsonDiigoBookmark = json_decode($diigoBookmark);
 	 		if (!isset($jsonDiigoBookmark->code)  || ($jsonDiigoBookmark->code != 1)) {
@@ -485,9 +485,9 @@ class Cowaboo {
 	 	}
 
 	 	if (in_array('zotero', $services)) {
-	 		$usersOrGroups = $this->getParam('get', 'zotero service', 'zotero_users_or_groups');
-	 		$elementId = $this->getParam('get', 'zotero service', 'zotero_elementId');
-	 		$apiKey = $this->getParam('get', 'zotero service', 'zotero_api_key');
+	 		$usersOrGroups = $this->getParam('post', 'zotero service', 'zotero_users_or_groups');
+	 		$elementId = $this->getParam('post', 'zotero service', 'zotero_elementId');
+	 		$apiKey = $this->getParam('post', 'zotero service', 'zotero_api_key');
 	 		$zoteroBookmark = $this->zotero->createBookmark($usersOrGroups, $elementId, $apiKey, $info);
 	 		if (isset($zoteroBookmark->error)) {
 				$error = $zoteroBookmark->error[0];
@@ -523,7 +523,10 @@ class Cowaboo {
 		global $app;
 		$param  = $this->app->request->$method($paramName); 
 		if (!$param) {
-			return $this->sendError("$serviceName asked, but no '$paramName' provided");
+			$param  = $this->app->request->get($paramName); 
+		}
+		if (!$param) {
+			return $this->sendError("$serviceName asked, but no '$paramName' provided, in $method");
 		}
 		return $param;
 	}
