@@ -44,7 +44,7 @@ class Zotero {
 		."      \"lastName\": \"\""
 		."    }"
 		."  ],"
-		."  \"abstractNote\": \"".addslashes($info->description)."\","
+		."  \"abstractNote\": ".json_encode($info->description).","
 		."  \"websiteTitle\": \"\","
 		."  \"websiteType\": \"\","
 		."  \"date\": \"\","

@@ -4,12 +4,16 @@ class Cowaboo {
 	var $app;
 	var $diigo;
 	var $zotero;
+	var $ipfs;
+	var $db;
 
-	function __construct($app, $diigo, $zotero, $mediaWiki) {
+	function __construct($app, $diigo, $zotero, $mediaWiki, $ipfs, $db) {
 		$this->app       = $app;
 		$this->diigo     = $diigo;
 		$this->zotero    = $zotero;
 		$this->mediaWiki = $mediaWiki;
+		$this->ipfs      = $ipfs;
+		$this->db 		 = $db;
     }
 
     /**
@@ -496,6 +500,32 @@ class Cowaboo {
 		}
 
 		return true;
+	}
+
+	public function postToIpfs() {
+		$description = $this->getParam('post', 'post to ipfs', 'description');
+		$tags = $this->getParam('post', 'post to ipfs', 'tags');
+
+		$tagTemp = '||';
+		foreach (explode(',', $tags) as $tag) {
+			$tagTemp .= trim($tag).'||';
+		}
+		$tags = $tagTemp;
+		$post = $this->ipfs->post($description);
+
+		$hash = $post->Hash;
+
+		$sql = "SELECT hash FROM ipfs WHERE hash = '$hash'";
+		$result = $this->db->query($sql);
+
+		if ($result->num_rows > 0) {
+			return $post;
+		}
+
+		$sql = "INSERT INTO ipfs (tags, hash, created_at) VALUES ('$tags', '$hash', '".date('Y-m-d H:i:s',time())."')";
+		mysqli_query($this->db, $sql);
+
+		return $post;
 	}
 
 	/**

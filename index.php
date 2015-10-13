@@ -5,10 +5,16 @@ require 'models/Diigo.php';
 require 'models/DiigoApi.php';
 require 'models/Zotero.php';
 require 'models/MediaWiki.php';
+require 'models/Ipfs.php';
 require 'services/ApiCaller.php';
 
 $dfUrl     = "http://stadja.net:81/rest";
 $diigoRssUrl  = $dfUrl."/diigoRss";
+
+$db = new mysqli('localhost', 'cowaboo', 'cowaboo1234', 'cowaboo');
+if ($db->connect_error) {
+    die("Connection failed: " . $db->connect_error);
+} 
 
 $apiCaller = new ApiCaller();
 
@@ -33,7 +39,11 @@ $mediaWikiUrl = "http://en.wikipedia.org/w/api.php";
 $wikipediaUrl = "https://en.wikipedia.org/wiki";
 $mediaWiki = new MediaWiki($mediaWikiUrl, $wikipediaUrl, $apiCaller);
 
-$cowaboo = new Cowaboo($app, $diigoRealApi, $zotero, $mediaWiki);
+
+$ipfsUrl = 'http://ipfs.stadja.net/upload/';
+$ipfs = new Ipfs($ipfsUrl);
+
+$cowaboo = new Cowaboo($app, $diigoRealApi, $zotero, $mediaWiki, $ipfs, $db);
 $app->cowaboo = $cowaboo;
 
 /**
@@ -145,6 +155,17 @@ $app->get('/tags/users', function () use ($app) {
 
 	$app->response->setBody(json_encode($related));
 })->name('getRelatedGroups');
+
+
+$app->post('/ipfs', function() use ($app) {
+	$hash = $app->cowaboo->postToIpfs();
+	$app->response->setBody(json_encode($hash));
+})->name('postToIpfs');
+
+$app->get('/ipfs', function() use ($app) {
+	$hash = $app->cowaboo->postToIpfs();
+	$app->response->setBody(json_encode($hash));
+})->name('postToIpfs');
 
 /**
  * When you ask a not existing api method
