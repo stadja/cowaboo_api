@@ -472,7 +472,7 @@ class Cowaboo {
 
 	 	$services = $this->app->request->get('services'); 
 	 	if (!$services) {
-	 		$services = 'diigo,zotero';
+	 		$services = '';
 	 	}
 	 	$services = explode(',', $services);
 
@@ -504,7 +504,9 @@ class Cowaboo {
 
 	public function postToIpfs() {
 		$description = $this->getParam('post', 'post to ipfs', 'description');
-		$tags = $this->getParam('post', 'post to ipfs', 'tags');
+		$tags        = $this->getParam('post', 'post to ipfs', 'tags');
+		$group       = $this->getParam('post', 'post to ipfs', 'group', 'cowaboo');
+		$param  = $this->app->request->get('group'); 
 
 		$tagTemp = '||';
 		foreach (explode(',', $tags) as $tag) {
@@ -515,14 +517,14 @@ class Cowaboo {
 
 		$hash = $post->Hash;
 
-		$sql = "SELECT hash FROM ipfs WHERE hash = '$hash'";
+		$sql = "SELECT hash FROM ipfs WHERE hash = '$hash' and ipfs.group = '$group'";
 		$result = $this->db->query($sql);
 
 		if ($result->num_rows > 0) {
 			return $post;
 		}
 
-		$sql = "INSERT INTO ipfs (tags, hash, created_at) VALUES ('$tags', '$hash', '".date('Y-m-d H:i:s',time())."')";
+		$sql = "INSERT INTO ipfs (tags, hash, ipfs.group, created_at) VALUES ('$tags', '$hash', '$group', '".date('Y-m-d H:i:s',time())."')";
 		mysqli_query($this->db, $sql);
 
 		return $post;
@@ -549,13 +551,17 @@ class Cowaboo {
 	 * @param  string $paramName   the name of the param
 	 * @return mixed               the param value
 	 */
-	private function getParam($method, $serviceName, $paramName) {
+	private function getParam($method, $serviceName, $paramName, $default = false) {
 		global $app;
 		$param  = $this->app->request->$method($paramName); 
+
 		if (!$param) {
 			$param  = $this->app->request->get($paramName); 
 		}
 		if (!$param) {
+			if ($default) {
+				return $default;
+			}
 			return $this->sendError("$serviceName asked, but no '$paramName' provided, in $method");
 		}
 		return $param;
