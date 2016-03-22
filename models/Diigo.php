@@ -142,32 +142,41 @@ class Diigo {
      */
     public function  getRelatedTags($tag)
     {
-		$methodUrl = $this->urlRss.("/tag/$tag?tab=153"); 
+		$methodUrl = "https://www.diigo.com/tag/$tag?year=all"; 
 		$stream = $this->api->call('get', $methodUrl);
 
-		try {
-			$parser = new SimpleXMLElement($stream);
-		} catch(Exception $e) {
-			return array();
-		}
-
 		$relateds = array();
-		preg_match_all("/rel='tag'&gt;(.+)&lt;\/a/", $stream, $relateds);
+		preg_match_all('/<a class="tagPM".*<a href=".*>(.*)<\/a>/', $stream, $relateds);
 		$relateds = $relateds[1];
-
 		array_walk($relateds, function(&$val) {
 			$val = strtolower($val);
 		});
 
-		$relateds = array_filter($relateds, function($val) use($tag){
-			return $tag != $val;
+		$relateds2 = array();
+		$regexp = '/<a href="\/tag\/.*">(.*)<\/a>/U';
+		preg_match_all($regexp, $stream, $relateds2);
+
+		$relateds2 = $relateds2[1];
+		array_walk($relateds2, function(&$val) {
+			$val = strtolower($val);
 		});
+
+		$relateds = array_merge($relateds, $relateds2);
 
 		$relateds = array_count_values($relateds);
 		asort($relateds);
 		$relateds = array_reverse($relateds);
 		$relateds = array_keys($relateds);
-		
+
+		$relateds = array_filter($relateds, function($val) use($tag){
+			if(strlen($val) < 2) {
+				return false;
+			}
+			return $tag != $val;
+		});
+
+		$relateds = array_merge($relateds);
+
         return  $relateds; /* diigo related tags */
     }
 

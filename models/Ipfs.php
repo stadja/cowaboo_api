@@ -14,7 +14,7 @@ class Ipfs {
 
 		//Post file
 		$post = array(
-		    "file_box"=>'@'.$file,
+		    "file_box"=> new CURLFile($file),
 		);
 
 		$headers = array();
@@ -34,7 +34,6 @@ class Ipfs {
 
 	    $hash = ob_get_clean();
 	    $fileUploaded = json_decode($hash);
-
 	    return $fileUploaded;
     }
 

@@ -8,6 +8,17 @@ require 'models/MediaWiki.php';
 require 'models/Ipfs.php';
 require 'services/ApiCaller.php';
 
+/*
+use Abraham\TwitterOAuth\TwitterOAuth;
+const CONSUMER_KEY = 'j9SBN1SCTzWRT2SF770IMsmoS';
+const CONSUMER_SECRET = 'jYqIP6U97x0aJunPaICB7lWhLsO66Ra1ZTCq8LFdGsuqZeomhd';
+$access_token = '17897401-BSEjlx8rmRJEiZauMbWYs9mZZctwu58OJ62IAKT9r';
+$access_token_secret = 'Pf7KnFlznVnJtwpZ7SdfDaXwLD3pEWewaUwXvPX84bPtL';
+$connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET, $access_token, $access_token_secret);
+$content = $connection->get("search/tweets", array("q" => "fallout 4"));
+var_dump($content);
+die();
+/**/
 $dfUrl     = "http://stadja.net:81/rest";
 $diigoRssUrl  = $dfUrl."/diigoRss";
 

@@ -514,7 +514,6 @@ class Cowaboo {
 		}
 		$tags = $tagTemp;
 		$post = $this->ipfs->post($description);
-
 		$hash = $post->Hash;
 
 		$sql = "SELECT hash FROM ipfs WHERE hash = '$hash' and ipfs.group = '$group'";
